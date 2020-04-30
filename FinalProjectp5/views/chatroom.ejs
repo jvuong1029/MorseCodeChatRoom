@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<!-- Required meta tags -->
+		<meta charset="UTF-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1, shrink-to-fit=no"
+		/>
+
+		<!-- Bootstrap CSS -->
+		<link rel="stylesheet" href="/bootstrap.min.css" />
+
+		<link rel="stylesheet" href="/custom.css" />
+
+		<title>Morse Code Chat Room with Arduino</title>
+		<style>
+			* {
+				box-sizing: border-box;
+			}
+			body {
+				font: 13px Helvetica, Arial;
+			}
+			form {
+				position: fixed;
+				bottom: 0;
+				width: 90%;
+				border-top-style: solid;
+				border-top-width: 1px;
+				padding: 3px;
+			}
+			form input {
+				margin-right: 0.5%;
+				width: 85%;
+				border-style: solid;
+				border-width: 1px;
+				padding: 10px;
+			}
+			form button {
+				margin-left: 2%;
+				width: 9%;
+				border: none;
+				padding: 10px;
+			}
+			#messages {
+				position: absolute;
+				top: 45px;
+				bottom: 50px;
+				list-style-type: none;
+				padding: 0;
+			}
+			#messages li {
+				padding: 5px 10px;
+				color: greenyellow;
+			}
+			/* Popup container - can be anything you want */
+			.popup {
+				position: relative;
+				display: inline-block;
+				cursor: pointer;
+				-webkit-user-select: none;
+				-moz-user-select: none;
+				-ms-user-select: none;
+				user-select: none;
+			}
+			/* The actual popup */
+			.popup .popupImage {
+				visibility: hidden;
+				z-index: 1;
+				position: absolute;
+				bottom: 50px;
+				right: 10px;
+				width: 360px;
+				text-align: center;
+				border-radius: 6px;
+				padding: 8px 0;
+				background-color: #555;
+				color: #fff;
+			}
+			/* Toggle this class - hide and show the popup */
+			.popup .show {
+				visibility: visible;
+				-webkit-animation: fadeIn 1s;
+				animation: fadeIn 1s;
+			}
+			/* Add animation (fade in the popup) */
+			@-webkit-keyframes fadeIn {
+				from {
+					opacity: 0;
+				}
+				to {
+					opacity: 1;
+				}
+			}
+			@keyframes fadeIn {
+				from {
+					opacity: 0;
+				}
+				to {
+					opacity: 1;
+				}
+			}
+			#morseKeyBtn {
+				position: fixed;
+				bottom: 0;
+				right: 0;
+				width: 10%;
+				border: none;
+				padding: 10px;
+			}
+			#connectionBtn {
+				position: fixed;
+				top: 50px;
+				right: 0;
+				width: 10%;
+				border: none;
+				padding: 10px;
+			}
+		</style>
+
+		<!-- Needed for client -->
+		<script src="../../socket.io/socket.io.js"></script>
+		<script src="https://code.jquery.com/jquery-3.5.0.min.js"></script>
+
+		<!-- Libraries for p5-->
+		<script src="libraries/p5.min.js"></script>
+		<script src="libraries/p5.sound.min.js"></script>
+		<script src="libraries/p5.serialport.js"></script>
+
+		<!-- p5 sketch for Morse Code background -->
+		<script src="sketch.js"></script>
+	</head>
+	<body>
+		<%- include("partials/navbar"); %>
+		<ul id="messages" style="overflow: auto; width: 100vw;"></ul>
+		<form action="/" method="POST" id="chatForm">
+			<input
+				id="txt"
+				autocomplete="off"
+				autofocus="on"
+				placeholder="Type your message here..."
+				spellcheck="true"
+			/><button>Send</button>
+		</form>
+		<button
+			onclick="popUpFunction()"
+			class="btn-default popup"
+			id="morseKeyBtn"
+		>
+			Morse Code Key
+			<span class="popupImage"
+				><img
+					src="/images/international_morse_code.jpg"
+					alt="Morse Code Key"
+			/></span>
+		</button>
+		<!-- Button to trigger modal to input port name and/or input choice -->
+		<button
+			id="connectionBtn"
+			type="button"
+			class="btn-default"
+			data-toggle="modal"
+			data-target="#p5MorseConnection"
+		>
+			Connect Morse interaction
+		</button>
+		<div id="p5MorseConnection" class="modal">
+			<div class="modal-dialog" role="document">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title">Morse Code Interaction</h5>
+						<button
+							type="button"
+							class="close"
+							data-dismiss="modal"
+							aria-label="Close"
+						>
+							<span aria-hidden="true">&times;</span>
+						</button>
+					</div>
+					<div class="modal-body">
+						<label for="port"
+							>Port name
+							<p>
+								Input port name from the list in
+								p5.serialcontrol. For example, Windows
+								<code> COM7</code>, Unix (ie: Linux/macOS)
+								<code> /dev/ttyACM0</code>.
+							</p></label
+						>
+						<input
+							id="portName"
+							type="text"
+							placeholder="Enter port name"
+							name="port"
+							required
+						/>
+					</div>
+					<div class="modal-footer">
+						<button
+							id="arduinoInput"
+							type="button"
+							class="btn btn-primary"
+							data-dismiss="modal"
+						>
+							Submit port name
+						</button>
+						<button
+							id="keyInput"
+							type="button"
+							class="btn btn-primary"
+							data-dismiss="modal"
+						>
+							Keyboard input only
+						</button>
+						<button
+							type="button"
+							class="btn btn-secondary"
+							data-dismiss="modal"
+						>
+							Close
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Client communication with server -->
+		<script>
+			var socket = io.connect("http://localhost:8080");
+
+			// ask username
+			var username = prompt("Please tell me your name");
+			socket.emit("username", username);
+
+			// submit text message without reload/refresh the page
+			$("form").submit(function (e) {
+				e.preventDefault(); // prevents page reloading
+				socket.emit("chat_message", $("#txt").val());
+				$("#txt").val("");
+				return false;
+			});
+
+			// append the chat text message
+			socket.on("chat_message", function (msg) {
+				$("#messages").append($("<li>").html(msg));
+			});
+
+			// append text if someone is online
+			socket.on("is_online", function (username) {
+				$("#messages").append($("<li>").html(username));
+			});
+		</script>
+
+		<!-- Popup for Morse code key -->
+		<script>
+			// When the user clicks on div, open the popup
+			function popUpFunction() {
+				var popup = document.getElementById("popupSpan");
+				popup.classList.toggle("show");
+			}
+		</script>
+
+		<!-- jQuery first, then Popper.js, then Bootstrap JS -->
+		<script
+			src="https://code.jquery.com/jquery-3.5.0.min.js"
+			integrity="sha256-xNzN2a4ltkB44Mc/Jz3pT4iU1cmeR0FkXs4pru/JxaQ="
+			crossorigin="anonymous"
+		></script>
+		<script
+			src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+			integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
+			crossorigin="anonymous"
+		></script>
+		<script
+			src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"
+			integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6"
+			crossorigin="anonymous"
+		></script>
+	</body>
+</html>

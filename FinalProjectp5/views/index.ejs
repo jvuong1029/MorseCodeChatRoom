@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<!-- Required meta tags -->
+		<meta charset="UTF-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1, shrink-to-fit=no"
+		/>
+
+		<!-- Bootstrap CSS -->
+		<link rel="stylesheet" href="/bootstrap.min.css" />
+
+		<!-- Prism for syntax highlighting code -->
+		<link rel="stylesheet" href="/prism.css" />
+
+		<link rel="stylesheet" href="/custom.css" />
+
+		<title>Morse Code Chat Room with Arduino</title>
+		<style>
+			body {
+				margin-bottom: 50px;
+			}
+			.center-custom {
+				text-align: center;
+			}
+			/* Max height of box for code snippet */
+			pre {
+				max-height: 30em;
+			}
+		</style>
+	</head>
+	<body>
+		<%- include("partials/navbar"); %>
+		<div class="container">
+			<div class="row">
+				<div class="col-md-12">
+					<div class="jumbotron">
+						<h2>About</h2>
+						<p class="lead">
+							This is a simple chatroom that also includes the
+							ability to utilize Morse Code through using an
+							Arduino device.
+							<!-- TODO: add more to About -->
+						</p>
+					</div>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-md-4">
+					<h4 class="center-custom">Arduino Notes</h4>
+					<p>
+						While the provided sketch is for an Adafruit Circuit
+						Playground Express, all you need is an Arduino to print
+						out in serial the following four things:
+					</p>
+					<ul>
+						<li>"."</li>
+						<li>"-" (dash or well... more of a hyphen)</li>
+						<li>"space"</li>
+						<li>"help"</li>
+					</ul>
+				</div>
+				<div class="col-md-8 center-custom">
+					<h4>
+						Arduino Code for Adafruit Circuit Playground Express
+					</h4>
+					<pre><code class="language-arduino">/*
+	References:
+	https://learn.adafruit.com/circuit-playground-lesson-number-0/buttons-slide-switch
+	https://www.arduino.cc/en/tutorial/debounce
+*/
+#include &lt;Adafruit_CircuitPlayground.h>
+
+// Variables will change:
+int buttonState1; // the current reading from the input pin
+int buttonState2;
+int lastButtonState1 = LOW; // the previous reading from the input pin
+int lastButtonState2 = LOW;
+
+// the following variables are unsigned longs because the time, measured in
+// milliseconds, will quickly become a bigger number than can be stored in an int.
+unsigned long lastDebounceTime1 = 0; // the last time the output pin was toggled
+unsigned long lastDebounceTime2 = 0;
+unsigned long debounceDelay = 50; // the debounce time; increase if the output flickers
+
+void setup(void)
+{
+	CircuitPlayground.begin();
+	Serial.begin(9600);
+
+	while (!Serial)
+	{
+		; // wait for serial port to connect. Needed for native USB port only
+	}
+}
+
+void loop(void)
+{
+	// read the state of the switch into a local variable:
+	int reading1 = CircuitPlayground.leftButton();  // dot, true if pressed
+	int reading2 = CircuitPlayground.rightButton(); // dash
+
+	// check to see if you just pressed the button
+	// (i.e. the input went from LOW to HIGH), and you've waited long enough
+	// since the last press to ignore any noise:
+
+	// If the switch changed, due to noise or pressing:
+	if (reading1 != lastButtonState1)
+		lastDebounceTime1 = millis(); // reset the debouncing timer
+	if (reading2 != lastButtonState2)
+		lastDebounceTime2 = millis();
+
+	if ((millis() - lastDebounceTime1) > debounceDelay)
+	{
+		// whatever the reading is at, it's been there for longer than the debounce
+		// delay, so take it as the actual current state:
+
+		// if the button state has changed:
+		if (reading1 != buttonState1)
+		{
+			buttonState1 = reading1;
+
+			if (buttonState1 == HIGH && CircuitPlayground.slideSwitch())
+				Serial.println(".");
+			else if (buttonState1 == HIGH && !CircuitPlayground.slideSwitch())
+				Serial.println("space");
+		}
+	}
+	if ((millis() - lastDebounceTime2) > debounceDelay)
+	{
+		if (reading2 != buttonState2)
+		{
+			buttonState2 = reading2;
+
+			if (buttonState2 == HIGH && CircuitPlayground.slideSwitch())
+				Serial.println("-");
+			else if (buttonState2 == HIGH && !CircuitPlayground.slideSwitch())
+				Serial.println("help");
+		}
+	}
+
+	// save the reading. Next time through the loop, it'll be the lastButtonState1:
+	lastButtonState1 = reading1;
+	lastButtonState2 = reading2;
+
+	// set the LED:
+	CircuitPlayground.strip.clear();
+	if (buttonState1 == HIGH && CircuitPlayground.slideSwitch())
+		CircuitPlayground.strip.setPixelColor(2, 0xFFA500); // orange
+	else if (buttonState1 == HIGH && !CircuitPlayground.slideSwitch())
+		for (int i = 0; i < 10; i++)
+			CircuitPlayground.strip.setPixelColor(i, 0xFFA500); // orange
+	else if (buttonState2 == HIGH && CircuitPlayground.slideSwitch())
+		for (int i = 6; i < 9; i++)
+			CircuitPlayground.strip.setPixelColor(i, 0xFFA500); // orange
+	else if (buttonState2 == HIGH && !CircuitPlayground.slideSwitch())
+		for (int i = 0; i < 10; i++)
+			CircuitPlayground.strip.setPixelColor(i, 0xFF0000); // red
+	CircuitPlayground.strip.show();
+
+	delay(10);
+}
+</code></pre>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-md-4">
+					<h4 class="center-custom">App Instructions</h4>
+					<a
+						href="https://github.com/p5-serial/p5.serialcontrol/releases"
+						target="_blank"
+						>Install p5.serialcontrol from here before connecting
+						your Arduino.</a
+					>
+					<p>
+						If you're using an Adafruit Circuit Playground Express
+						then these are the controls for the Arduino sketch
+						provided. Please put the code into an
+						<code>.ino</code> file and upload. Otherwise if you're
+						using another device or using your own sketch do what
+						your heart desires. 🙂
+					</p>
+					Slider left:
+					<ul>
+						<li>Left button = "."</li>
+						<li>Right button = "-" (dash)</li>
+					</ul>
+					Slider right:<br />
+					<ul>
+						<li>Left button = "space"</li>
+						<li>Right button: a surprise 😉</li>
+					</ul>
+					<p>
+						Don't worry about not having an Arduino! You can still
+						use the app as long as you can access this site. Anyone
+						can access the chatroom feature and you can use your
+						keyboard to contribute. If you have an Arduino hooked up
+						you can still use your keyboard for input.
+					</p>
+					<ul>
+						<li>Left key = "."</li>
+						<li>Right key = "-" (dash)</li>
+						<li>Down key = "space"</li>
+						<li>Spam "space" 😉</li>
+					</ul>
+				</div>
+				<div class="col-md-4 center-custom">
+					<h4>Morse Code Key</h4>
+					<img
+						src="/images/international_morse_code.jpg"
+						alt="Morse Code Key"
+					/>
+				</div>
+				<div class="col-md-4 center-custom">
+					<h4>Enter chatroom here!</h4>
+					<button onclick="location.href='/chatroom'" class="btn-lg">
+						ENTER
+					</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- jQuery first, then Popper.js, then Bootstrap JS -->
+		<script
+			src="https://code.jquery.com/jquery-3.5.0.min.js"
+			integrity="sha256-xNzN2a4ltkB44Mc/Jz3pT4iU1cmeR0FkXs4pru/JxaQ="
+			crossorigin="anonymous"
+		></script>
+		<script
+			src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+			integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
+			crossorigin="anonymous"
+		></script>
+		<script
+			src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"
+			integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6"
+			crossorigin="anonymous"
+		></script>
+
+		<!-- Prism -->
+		<script src="/prism.js"></script>
+	</body>
+</html>

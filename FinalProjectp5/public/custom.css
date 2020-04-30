@@ -1,0 +1,13 @@
+body {
+	margin-top: 75px;
+}
+::-webkit-scrollbar {
+	background-color: #2a2b2b;
+	color: #d6d0c5;
+}
+::-webkit-scrollbar-corner {
+	background-color: #262727;
+}
+::-webkit-scrollbar-thumb {
+	background-color: #393939;
+}
