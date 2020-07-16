@@ -1,5 +1,5 @@
 {
-	"name": "finalprojectp5",
+	"name": "morsecodechatroom",
 	"version": "1.0.0",
 	"description": "ART 150 Final Project: Morse Code Chat Room with Arduino",
 	"main": "server.js",
