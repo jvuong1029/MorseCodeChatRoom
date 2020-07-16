@@ -1,6 +1,0 @@
-{
-    "board": "arduino:samd:adafruit_circuitplayground_m0",
-    "programmer": "AVRISP mkII",
-    "sketch": "FinalProjectArduino.ino",
-    "port": "COM7"
-}
